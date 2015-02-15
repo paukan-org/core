@@ -18,8 +18,9 @@
       "mocha": "^2.1.0"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "./node_modules/.bin/mocha --bail"
   },
   "homepage": "https://github.com/paukan-org/core",
-  "author": "Andrey Afoninskiy <vkfont@gmail.com>"
+  "author": "Andrey Afoninskiy <vkfont@gmail.com>",
+  "license": "Apache"
 }
