@@ -1,0 +1,25 @@
+{
+  "name": "paukan-core",
+  "version": "0.0.2",
+  "description": "IoT network core",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:paukan-org/paukan-core.git"
+  },
+  "dependencies": {
+    "async": "^0.9.0",
+    "eventemitter2": "^0.4.14",
+    "lodash-node": "^3.2.0",
+    "redis-eventemitter2": "0.0.1",
+    "throttle-arguments": "0.0.1",
+    "websocket-eventemitter2": "0.0.1"
+  },
+  "devDependencies": {
+      "mocha": "^2.1.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "homepage": "https://github.com/paukan-org/paukan-core",
+  "author": "Andrey Afoninskiy <vkfont@gmail.com>"
+}
