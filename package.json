@@ -4,7 +4,7 @@
   "description": "IoT network core",
   "repository": {
     "type": "git",
-    "url": "git@github.com:paukan-org/paukan-core.git"
+    "url": "git@github.com:paukan-org/core.git"
   },
   "dependencies": {
     "async": "^0.9.0",
@@ -20,6 +20,6 @@
   "scripts": {
     "test": "mocha"
   },
-  "homepage": "https://github.com/paukan-org/paukan-core",
+  "homepage": "https://github.com/paukan-org/core",
   "author": "Andrey Afoninskiy <vkfont@gmail.com>"
 }
