@@ -11,13 +11,9 @@ var requiredFields = ['id', 'version']; // required fields for device
  * Provice necessary functional and act as router.
  *
  * @param {object}      config      configuration parameters for service initialisation
- * @param {function}    callback    if not set - will throw on error or emit 'online', otherwise will pass err
+ * @param {function}    callback    if not set - only class will be instances
  */
 function Service(config, callback) {
-
-    var self = this,
-        eventEmitter = new EventEmitter2({ wildcard: true, delimiter: '.'}),
-        network = this.network = { local: eventEmitter };
 
     this.cfg = {};
     ld.defaults(this.cfg, config, {
@@ -33,11 +29,32 @@ function Service(config, callback) {
         // - server: create websocket server and wait incoming connection on specified port
     });
 
+    this.id = this.cfg.id;
+    this.hostname = require('os').hostname();
+    this.version = this.cfg.version;
+    this.description = this.cfg.description;
+    this.homepage = this.cfg.homepage;
+    this.author = this.cfg.author;
+
+    this.devices = {}; // list of devices in this service
+
+    if(callback) { this.init(callback); }
+}
+
+/**
+ * Connect to automated network and handle common events
+ *
+ * @param {function} callback       <err>
+ */
+Service.prototype.init = function(callback) {
+
+    var self = this,
+        eventEmitter = new EventEmitter2({ wildcard: true, delimiter: '.'}),
+        network = this.network = { local: eventEmitter };
+
     var cb = function(err) {
         callback = callback || function(err) {
-            if (err) {
-                throw err;
-            }
+            if(err) { throw err; }
             network.local.emit('online');
         };
         if(err) { return callback(err); }
@@ -71,18 +88,9 @@ function Service(config, callback) {
         ], callback);
     };
 
-    this.id = this.cfg.id;
-    this.hostname = require('os').hostname();
-    this.version = this.cfg.version;
-    this.description = this.cfg.description;
-    this.homepage = this.cfg.homepage;
-    this.author = this.cfg.author;
-
     if(!this.isDeviceValid(this)) {
         return cb(new Error('.id and .version should be provided for service'));
     }
-
-    this.devices = {}; // list of devices in this service
 
     // network: global evenemitter object, events will be transmitted into whole automated network
     // network.local: events will be transmitted only into current application
@@ -90,7 +98,7 @@ function Service(config, callback) {
         network = self.network = _network;
         setImmediate(cb, err);
     });
-}
+};
 
 /**
  * Iterate over {cfg.connections} array and try to create connecton of this type.
