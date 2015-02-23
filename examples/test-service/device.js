@@ -54,7 +54,7 @@ Device.restartTimer = function() {
     clearInterval(this.timer);
     this.timer = setInterval(function() {
         this.counter++;
-        this.emit('counter', this.counter, this.counter - 1);
+        this.service.state(this.id, 'counter', this.counter, this.counter - 1);
     }.bind(this), this.delay);
 };
 
@@ -73,25 +73,11 @@ Device.setDelay = function(value, callback) {
         return callback(new Error('wrong value passed'));
     }
     this.delay = value;
-    this.emit('delay', value, prevValue);
+    this.service.state(this.id, 'delay', value, prevValue);
     this.restartTimer();
     return callback(null, value, prevValue);
 };
 
-/**
- * Emit state change for device
- * @param  {string} name     state name
- * @param  {any} value       param1 in event payload
- * @param  {any} oldValue    param2 in event payload
- */
-Device.emit = function(name, value, oldValue) {
-
-    this.service.network.emit(
-        'state.'+this.service.id+'.'+this.id+'.'+name,
-        value,
-        oldValue
-    );
-};
 
 /**
  * Default action request handler for items .{state} or function .get{state} not found.

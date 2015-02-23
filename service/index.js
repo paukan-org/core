@@ -224,7 +224,7 @@ Service.prototype.isDeviceValid = function(device, callback) {
 };
 
 /**
- * Emit response event into network in form "reply.service.replyid.action"
+ * Emit 'response' event into network in form "reply.service.replyid.action"
  * Event payload always consists of an array [err] or [null, res]
  *
  * @param  {error} err      object with error or null
@@ -241,6 +241,30 @@ Service.prototype.response = function(err, res, replyId, action) {
         response.push(null, res);
     }
     this.network.emit.apply(this.network, response);
+};
+
+/**
+ * Emit 'state' event into network in form 'state.service.device.name
+ *
+ * @param {object|string}   device id or device object, if falsy value passed - event will be emitted from service
+ * @param {string}          state name
+ * @params {any}            arguments to event payload
+ */
+Service.prototype.state = function() {
+
+    var arg = ld.values(arguments),
+        deviceID = arg.shift(),
+        stateName = arg.shift(),
+        eventName = [
+            'state',
+            this.id,
+            deviceID ? (deviceID.id || deviceID) : 'service',
+            stateName
+        ].join('.');
+
+    arg.unshift(eventName);
+
+    this.network.emit.apply(this.network, arg);
 };
 
 /**
