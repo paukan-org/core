@@ -40,7 +40,7 @@ Device.beforeLoad = function(config, service, callback) {
 Device.afterLoad = function(callback) {
 
     this.counter = 0;
-    this.delay = 60000;
+    this.delay = 1000;
 
     this.restartTimer();
     callback();
