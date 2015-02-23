@@ -15,7 +15,10 @@ var requiredFields = ['id', 'version']; // required fields for device
  */
 function Service(config, callback) {
 
+    var eventEmitter = new EventEmitter2({ wildcard: true, delimiter: '.'});
     this.cfg = {};
+    this.network = { local: eventEmitter };
+
     ld.defaults(this.cfg, config, {
         // id                       // required, unique service id [^a-zA-Z0-9_]
         // version                  // required
@@ -49,8 +52,7 @@ function Service(config, callback) {
 Service.prototype.init = function(callback) {
 
     var self = this,
-        eventEmitter = new EventEmitter2({ wildcard: true, delimiter: '.'}),
-        network = this.network = { local: eventEmitter };
+        network = this.network;
 
     var cb = function(err) {
         callback = callback || function(err) {
@@ -94,7 +96,7 @@ Service.prototype.init = function(callback) {
 
     // network: global evenemitter object, events will be transmitted into whole automated network
     // network.local: events will be transmitted only into current application
-    this.getFirstReadyConnection(eventEmitter, function (err, _network) {
+    this.getFirstReadyConnection(this.network.local, function (err, _network) {
         network = self.network = _network;
         setImmediate(cb, err);
     });
