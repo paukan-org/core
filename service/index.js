@@ -3,6 +3,8 @@
 var ld = require('lodash-node');
 var async = require('async');
 var EventEmitter2 = require('eventemitter2').EventEmitter2;
+var bunyan = require('bunyan');
+var common = require('../common');
 
 var requiredFields = ['id', 'version']; // required fields for device
 
@@ -15,6 +17,7 @@ var requiredFields = ['id', 'version']; // required fields for device
  */
 function Service(config, callback) {
 
+    ld.bindAll(this);
     var eventEmitter = new EventEmitter2({ wildcard: true, delimiter: '.'});
     this.cfg = {};
     this.network = { local: eventEmitter };
@@ -26,7 +29,7 @@ function Service(config, callback) {
         port: 6379,                 // network or proxy port
         host: 'paukan',             // network or proxy host
         throttling: 200,            // do not emit same event fired durning this period (on multiple psubscribe)
-        connections: ['direct', 'remote', 'server'] // try next connection type if previous failed
+        connections: ['direct', 'remote', 'server'], // try next connection type if previous failed
         // - direct: connect to redis queue on specified host and port
         // - remote: connect to remote websocket proxy service on specified host and port
         // - server: create websocket server and wait incoming connection on specified port
@@ -40,9 +43,31 @@ function Service(config, callback) {
     this.author = this.cfg.author;
 
     this.devices = {}; // list of devices in this service
-
+    this.log = this.createLogger(this.cfg.logger);
     if(callback) { this.init(callback); }
 }
+
+/**
+ * Create logging device
+ *
+ * @param {object} logger       initialized logger (otherwise default will be used)
+ */
+Service.prototype.createLogger = function(logger) {
+
+    if(logger) { return logger; }
+    var log = bunyan.createLogger({
+        name: this.cfg.id,
+        streams: [{
+            stream: new common.StreamConsole(),
+            type: 'raw',
+            level: 'info'
+        }],
+    });
+    log.on('error', function (err) {
+        throw new Error(err); // this error will not show correct stack, but at least you got error
+    });
+    return log;
+};
 
 /**
  * Connect to automated network and handle common events
@@ -52,7 +77,8 @@ function Service(config, callback) {
 Service.prototype.init = function(callback) {
 
     var self = this,
-        network = this.network;
+        network = this.network,
+        log = this.log;
 
     var cb = function(err) {
         callback = callback || function(err) {
@@ -60,7 +86,7 @@ Service.prototype.init = function(callback) {
             network.local.emit('online');
         };
         if(err) { return callback(err); }
-        network.local.on('error', console.error);
+        network.local.on('error', log.error);
 
         async.series([
             function (next) { // listen and handle global network events
@@ -111,7 +137,7 @@ Service.prototype.init = function(callback) {
  */
 Service.prototype.getFirstReadyConnection = function(eventEmitter, callback) {
 
-    var network, cfg = this.cfg;
+    var network, cfg = this.cfg, log = this.log;
     async.eachSeries(cfg.connections, function (connectionType, next) {
         var Emitter, config = ld.clone(cfg);
         switch(connectionType) {
@@ -135,7 +161,7 @@ Service.prototype.getFirstReadyConnection = function(eventEmitter, callback) {
             if(err) {
                 return next(null);
             }
-            console.log('Network connection type:', connectionType);
+            log.info('Network connection type:', connectionType);
             return next(connectionType);
         };
         network = new Emitter(config, eventEmitter);
@@ -256,11 +282,16 @@ Service.prototype.state = function() {
 
     var arg = ld.values(arguments),
         deviceID = arg.shift(),
-        stateName = arg.shift(),
-        eventName = [
+        stateName = arg.shift();
+
+    deviceID = deviceID ? (deviceID.id || deviceID) : 'service';
+    if(deviceID !== 'service' && !this.devices[deviceID]) {
+        return this.log.error('.state: device with id'+deviceID+' not found in active devices');
+    }
+    var eventName = [
             'state',
             this.id,
-            deviceID ? (deviceID.id || deviceID) : 'service',
+            deviceID,
             stateName
         ].join('.');
 
@@ -284,11 +315,12 @@ Service.prototype.handleRequest = function(event, replyId, value) {
     }
     var self = this,
         action = arr[3],
-        device = this.devices[arr[2]];
+        device = this.devices[arr[2]],
+        log = this.log;
 
     function callback(err, res) {
         if(err) {
-            console.error(err.message);
+            log.error(err.message);
         }
         if(replyId) { // no need to genereate 'reply.*' event if reply id is not provided
             self.response(err, res, replyId, action);
@@ -449,12 +481,12 @@ Service.prototype.handleRequestedAction = function(device, action, value, callba
  */
 Service.prototype.handleGoodbyeOnExit = function() {
 
-    var network = this.network, id = this.id;
+    var network = this.network, id = this.id, log = this.log;
     process.stdin.resume(); //so the program will not close instantly
 
     function exitHandler(options, err) {
         if (err) {
-            console.log(err.stack);
+            log.error(err.stack);
         }
         if (options.exit) {
             process.exit();
